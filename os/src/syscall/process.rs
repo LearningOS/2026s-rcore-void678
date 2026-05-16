@@ -27,8 +27,6 @@ pub fn sys_exit(exit_code: i32) -> ! {
 }
 
 pub fn sys_yield() -> isize {
-    //trace!("kernel: sys_yield");
-    suspend_current_and_run_next();
     0
 }
 
