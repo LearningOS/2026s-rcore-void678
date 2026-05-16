@@ -8,7 +8,7 @@ use crate::{
         add_task, current_task, current_user_token, exit_current_and_run_next,
         suspend_current_and_run_next,
     },
-    timer::get_time_us,
+    timer::{get_time_ms, get_time_us},
 };
 use core::mem::size_of;
 
@@ -30,6 +30,14 @@ pub fn sys_exit(exit_code: i32) -> ! {
 pub fn sys_yield() -> isize {
     trace!("kernel:pid[{}] sys_yield", current_task().unwrap().pid.0);
     suspend_current_and_run_next();
+    0
+}
+
+pub fn sys_sleep(ms: usize) -> isize {
+    let expire = get_time_ms() + ms;
+    while get_time_ms() < expire {
+        suspend_current_and_run_next();
+    }
     0
 }
 
