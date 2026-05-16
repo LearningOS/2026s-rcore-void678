@@ -78,6 +78,50 @@ impl MemorySet {
             self.areas.remove(idx);
         }
     }
+    pub fn mmap(&mut self, start: usize, len: usize, port: usize) -> isize {
+        let start_va = VirtAddr::from(start);
+        if !start_va.aligned() || port == 0 || port & !0x7 != 0 {
+            return -1;
+        }
+        if len == 0 {
+            return 0;
+        }
+        let end_va = VirtAddr::from(start + len);
+        let area = MapArea::new(
+            start_va,
+            end_va,
+            MapType::Framed,
+            MapPermission::from_bits(((port as u8) << 1) | MapPermission::U.bits).unwrap(),
+        );
+        for vpn in area.vpn_range {
+            if self.translate(vpn).map_or(false, |pte| pte.is_valid()) {
+                return -1;
+            }
+        }
+        self.push(area, None);
+        0
+    }
+    pub fn munmap(&mut self, start: usize, len: usize) -> isize {
+        let start_va = VirtAddr::from(start);
+        if !start_va.aligned() {
+            return -1;
+        }
+        if len == 0 {
+            return 0;
+        }
+        let start_vpn = start_va.floor();
+        let end_vpn = VirtAddr::from(start + len).ceil();
+        let Some(pos) = self
+            .areas
+            .iter()
+            .position(|area| area.vpn_range.get_start() == start_vpn && area.vpn_range.get_end() == end_vpn)
+        else {
+            return -1;
+        };
+        let mut area = self.areas.remove(pos);
+        area.unmap(&mut self.page_table);
+        0
+    }
     /// Add a new MapArea into this MemorySet.
     /// Assuming that there are no conflicts in the virtual address
     /// space.
