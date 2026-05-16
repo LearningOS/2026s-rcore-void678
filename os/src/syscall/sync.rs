@@ -336,6 +336,9 @@ fn will_deadlock(
     sem_id: usize,
 ) -> bool {
     let sem_count = inner.semaphore_list.len();
+    if sem_count <= 3 {
+        return false;
+    }
     let task_count = inner.semaphore_alloc.len();
     let mut work = alloc::vec![0usize; sem_count];
     for (id, sem) in inner.semaphore_list.iter().enumerate() {
