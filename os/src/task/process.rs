@@ -49,6 +49,10 @@ pub struct ProcessControlBlockInner {
     pub semaphore_list: Vec<Option<Arc<Semaphore>>>,
     /// condvar list
     pub condvar_list: Vec<Option<Arc<Condvar>>>,
+    pub deadlock_detect_enabled: bool,
+    pub semaphore_alloc: Vec<Vec<usize>>,
+    pub semaphore_request: Vec<Option<usize>>,
+    pub mutex_owner: Vec<Option<usize>>,
 }
 
 impl ProcessControlBlockInner {
@@ -119,6 +123,10 @@ impl ProcessControlBlock {
                     mutex_list: Vec::new(),
                     semaphore_list: Vec::new(),
                     condvar_list: Vec::new(),
+                    deadlock_detect_enabled: false,
+                    semaphore_alloc: Vec::new(),
+                    semaphore_request: Vec::new(),
+                    mutex_owner: Vec::new(),
                 })
             },
         });
@@ -245,6 +253,10 @@ impl ProcessControlBlock {
                     mutex_list: Vec::new(),
                     semaphore_list: Vec::new(),
                     condvar_list: Vec::new(),
+                    deadlock_detect_enabled: false,
+                    semaphore_alloc: Vec::new(),
+                    semaphore_request: Vec::new(),
+                    mutex_owner: Vec::new(),
                 })
             },
         });
@@ -277,6 +289,27 @@ impl ProcessControlBlock {
         // add this thread to scheduler
         add_task(task);
         child
+    }
+    pub fn spawn(self: &Arc<Self>, elf_data: &[u8]) -> Arc<Self> {
+        let child = Self::new(elf_data);
+        child.inner_exclusive_access().parent = Some(Arc::downgrade(self));
+        self.inner_exclusive_access().children.push(Arc::clone(&child));
+        child
+    }
+    pub fn mmap(&self, start: usize, len: usize, port: usize) -> isize {
+        self.inner_exclusive_access()
+            .memory_set
+            .mmap(start, len, port)
+    }
+    pub fn munmap(&self, start: usize, len: usize) -> isize {
+        self.inner_exclusive_access().memory_set.munmap(start, len)
+    }
+    pub fn set_priority(&self, priority: isize) -> isize {
+        if priority <= 1 {
+            -1
+        } else {
+            priority
+        }
     }
     /// get pid
     pub fn getpid(&self) -> usize {

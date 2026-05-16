@@ -1,4 +1,4 @@
-use super::File;
+use super::{File, Stat, StatMode};
 use crate::mm::UserBuffer;
 use crate::sync::UPSafeCell;
 use alloc::sync::{Arc, Weak};
@@ -175,5 +175,8 @@ impl File for Pipe {
                 }
             }
         }
+    }
+    fn fstat(&self) -> Stat {
+        Stat::new(0, StatMode::NULL, 0)
     }
 }
