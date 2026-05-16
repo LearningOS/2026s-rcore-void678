@@ -44,10 +44,12 @@ jobs:
           make test CHAPTER=$ID | tee ../output.txt
       - name: end
         id: end
-        run: grep -a "Test passed" output.txt | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" | tee $GITHUB_OUTPUT
+        run: |
+          POINTS=$(grep -a "Test passed" output.txt | grep -oP "\d{1,}/\d{1,}" | tail -n 1)
+          echo "points=$POINTS" | tee "$GITHUB_OUTPUT"
       - name: Require full points
         run: |
-          POINTS='${{ steps.end.outputs.points }}'
+          POINTS="$(echo '${{ steps.end.outputs.points }}' | tr -d '[:space:]')"
           if [ -z "$POINTS" ]; then
             echo "points is empty"
             exit 1
