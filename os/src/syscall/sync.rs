@@ -217,7 +217,8 @@ pub fn sys_semaphore_down(sem_id: usize) -> isize {
     process_inner.semaphore_request[tid] = Some(sem_id);
     drop(process_inner);
     sem.down();
-    let mut process_inner = current_process().inner_exclusive_access();
+    let process = current_process();
+    let mut process_inner = process.inner_exclusive_access();
     ensure_deadlock_table(&mut process_inner, tid);
     process_inner.semaphore_request[tid] = None;
     process_inner.semaphore_alloc[tid][sem_id] += 1;
