@@ -294,6 +294,11 @@ impl TaskControlBlock {
                     parent: Some(Arc::downgrade(self)),
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: vec![
+                        Some(Arc::new(Stdin)),
+                        Some(Arc::new(Stdout)),
+                        Some(Arc::new(Stdout)),
+                    ],
                     heap_bottom: user_sp,
                     program_brk: user_sp,
                     priority: 16,
