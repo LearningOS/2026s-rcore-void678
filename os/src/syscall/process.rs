@@ -1,6 +1,6 @@
 //! Process management syscalls
 use crate::{
-    mm::{translated_byte_buffer, PageTable, VirtAddr},
+    mm::{translated_byte_buffer, PageTable, PTEFlags, VirtAddr},
     task::{
         change_program_brk, current_user_token, exit_current_and_run_next, get_syscall_count,
         mmap_current, munmap_current, suspend_current_and_run_next,
@@ -58,9 +58,11 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
     trace!("kernel: sys_trace");
     match trace_request {
-        0 => translated_byte(id).map(|byte| *byte as isize).unwrap_or(-1),
+        0 => translated_byte(id, PTEFlags::R)
+            .map(|byte| *byte as isize)
+            .unwrap_or(-1),
         1 => {
-            if let Some(byte) = translated_byte(id) {
+            if let Some(byte) = translated_byte(id, PTEFlags::W) {
                 *byte = data as u8;
                 0
             } else {
@@ -93,11 +95,11 @@ pub fn sys_sbrk(size: i32) -> isize {
     }
 }
 
-fn translated_byte(addr: usize) -> Option<&'static mut u8> {
+fn translated_byte(addr: usize, flag: PTEFlags) -> Option<&'static mut u8> {
     let page_table = PageTable::from_token(current_user_token());
     let va = VirtAddr::from(addr);
     page_table
         .translate(va.floor())
-        .filter(|pte| pte.is_valid())
+        .filter(|pte| pte.is_valid() && pte.flags().contains(PTEFlags::U | flag))
         .map(|pte| &mut pte.ppn().get_bytes_array()[va.page_offset()])
 }
