@@ -190,10 +190,12 @@ pub fn exit_current_and_run_next() {
     run_next_task();
 }
 
+/// Increase the syscall counter for the current task.
 pub fn increment_syscall_count(syscall_id: usize) {
     TASK_MANAGER.increment_syscall_count(syscall_id);
 }
 
+/// Get the syscall count for the current task.
 pub fn get_syscall_count(syscall_id: usize) -> isize {
     TASK_MANAGER.get_syscall_count(syscall_id)
 }
